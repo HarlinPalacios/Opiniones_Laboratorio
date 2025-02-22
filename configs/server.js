@@ -7,6 +7,9 @@ import morgan from "morgan"
 import { dbConnection } from "./mongo.js"
 import authRoutes from "../src/auth/auth.routes.js"
 import userRoutes from "../src/user/user.routes.js"
+import categoriaRoutes from "../src/categoria/cate.routes.js"
+import { admincreate } from "../src/auth/auth.controller.js"
+import { createCategories } from "../src/categoria/cate.controller.js"
 import apiLimiter from "../src/middlewares/rate-limit-validator.js"
 
 const middlewares = (app) => {
@@ -20,12 +23,16 @@ const middlewares = (app) => {
 
 const routes = (app) =>{
     app.use("/opiniones/v1/auth", authRoutes)
+    
     app.use("/opiniones/v1/user", userRoutes)
+    app.use("/opiniones/v1/categoria", categoriaRoutes)
 }
 
 const conectarDB = async () =>{
     try{
         await dbConnection()
+        await admincreate()
+        await createCategories()
     }catch(err){
         console.log(`Database connection failed: ${err}`)
         process.exit(1)

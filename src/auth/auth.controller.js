@@ -1,6 +1,6 @@
 import { hash, verify } from "argon2"
 import User from "../user/user.model.js"
-import { generateJWT } from "../helpers/generate-jwt.js";
+import { generateJWT } from "../helpers/generate-jwt.js"
 
 export const register = async (req, res) => {
     try {
@@ -26,40 +26,73 @@ export const register = async (req, res) => {
 }
 
 export const login = async (req, res) => {
-    const { email, username, password } = req.body
-    try{
-        const user = await User.findOne({
-            $or:[{email: email}, {username: username}]
-        })
+    const { email, username, password } = req.body;
 
-        if(!user){
+    try {
+        const user = await User.findOne({
+            $or: [{ email: email }, { username: username }]
+        });
+
+        if (!user) {
             return res.status(400).json({
-                message: "Crendenciales inválidas",
-                error:"No existe el usuario o correo ingresado"
-            })
+                message: "Credenciales inválidas",
+                error: "No existe el usuario o correo ingresado"
+            });
         }
 
         const validPassword = await verify(user.password, password)
 
-        if(!validPassword){
+        if (!validPassword) {
             return res.status(400).json({
-                message: "Crendenciales inválidas",
+                message: "Credenciales inválidas",
                 error: "Contraseña incorrecta"
-            })
+            });
         }
 
+        // si la contraseña es valida se gen erara el token
         const token = await generateJWT(user.id)
 
         return res.status(200).json({
-            message: "Login successful",
+            message: "Login exitoso",
             userDetails: {
+                username: user.username,
+                role: user.role,
                 token: token
             }
-        })
-    }catch(err){
+        });
+
+    } catch (err) {
+        console.error("Error en login:", err);
         return res.status(500).json({
-            message: "login failed, server error",
+            message: "Login failed, server error",
             error: err.message
-        })
+        });
     }
-}
+};
+
+export const admincreate = async () => {
+    try {
+        const adminExists = await User.findOne({ role: "ADMIN_ROLE" });
+
+        if (adminExists) {
+            console.log("El administrador ya existe");
+            return;
+        }
+
+        // Crear el nuevo usuario admin
+        const admin = new User({
+            name: "Harlin",
+            surname: "Palacios",
+            username: "hpalacios",
+            email: "palacios23@unires.com",
+            password: "$iojhgfr54&",
+            role: "ADMIN_ROLE",
+            status: true
+        });
+
+        console.log("Usuario ADMIN creado correctamente");
+
+    } catch (error) {
+        console.error("Error al crear el usuario ADMIN:", error);
+    }
+};
