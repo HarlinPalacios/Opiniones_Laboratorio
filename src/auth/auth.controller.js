@@ -1,21 +1,28 @@
 import { hash, verify } from "argon2"
 import User from "../user/user.model.js"
 import { generateJWT } from "../helpers/generate-jwt.js"
+import jwt from "jsonwebtoken"
+import bcrypt from 'bcryptjs';
 
+//egistras usuarios
 export const register = async (req, res) => {
     try {
         const data = req.body;
-        let profilePicture = req.file ? req.file.filename : null;
+        let profilePicture = req.file;
         const encryptedPassword = await hash(data.password)
         data.password = encryptedPassword
         data.profilePicture = profilePicture
 
         const user = await User.create(data);
 
+        const token = jwt.sign({ id: user._id, email: user.email }, 'your_secret_key', { expiresIn: '1h' });
+
         return res.status(201).json({
             message: "User has been created",
             name: user.name,
-            email: user.email
+            email: user.email,
+            token
+
         });
     } catch (err) {
         return res.status(500).json({
@@ -25,9 +32,9 @@ export const register = async (req, res) => {
     }
 }
 
+//Generar el login
 export const login = async (req, res) => {
     const { email, username, password } = req.body;
-
     try {
         const user = await User.findOne({
             $or: [{ email: email }, { username: username }]
@@ -40,7 +47,7 @@ export const login = async (req, res) => {
             });
         }
 
-        const validPassword = await verify(user.password, password)
+        const validPassword = await bcrypt.compare(password, user.password); 
 
         if (!validPassword) {
             return res.status(400).json({
@@ -49,50 +56,53 @@ export const login = async (req, res) => {
             });
         }
 
-        // si la contraseña es valida se gen erara el token
-        const token = await generateJWT(user.id)
+        // Generar JWT
+        const token = await generateJWT(user.id);
 
         return res.status(200).json({
-            message: "Login exitoso",
+            message: "Login successful",
             userDetails: {
-                username: user.username,
-                role: user.role,
-                token: token
+                token: token,
+                profilePicture: user.profilePicture || null  // Asegúrate de que el campo profilePicture existe
             }
         });
-
     } catch (err) {
-        console.error("Error en login:", err);
+        console.error(err);  // Imprime el error para ayudarte a depurarlo
         return res.status(500).json({
+            success: false,
             message: "Login failed, server error",
             error: err.message
         });
     }
 };
 
-export const admincreate = async () => {
+//Agregar al admin por defectro
+export const createAdmin = async () => {
     try {
         const adminExists = await User.findOne({ role: "ADMIN_ROLE" });
 
-        if (adminExists) {
-            console.log("El administrador ya existe");
-            return;
+        if (!adminExists) {
+            const hashedPassword = await hash("i$hyygsrfg5jhdGFd", 10); 
+
+            const admin = new User({
+                name: "Harlin",
+                surname: "Palacios",
+                username: "hpalacios",
+                email: "palaciosW@gmail.com",
+                password: hashedPassword,
+                phone: "21326554",
+                role: "ADMIN_ROLE",
+                status: true
+            });
+
+           
+            await admin.save();
+
+            console.log("Usuario ADMIN_ROLE creado correctamente");
+        } else {
+            console.log("Ya existe un usuario con el rol ADMIN_ROLE");
         }
-
-        // Crear el nuevo usuario admin
-        const admin = new User({
-            name: "Harlin",
-            surname: "Palacios",
-            username: "hpalacios",
-            email: "palacios23@unires.com",
-            password: "$iojhgfr54&",
-            role: "ADMIN_ROLE",
-            status: true
-        });
-
-        console.log("Usuario ADMIN creado correctamente");
-
     } catch (error) {
-        console.error("Error al crear el usuario ADMIN:", error);
+        console.error("Error al inicializar el usuario ADMIN_ROLE:", error);
     }
 };

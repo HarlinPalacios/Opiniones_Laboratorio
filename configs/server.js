@@ -8,7 +8,7 @@ import { dbConnection } from "./mongo.js"
 import authRoutes from "../src/auth/auth.routes.js"
 import userRoutes from "../src/user/user.routes.js"
 import categoriaRoutes from "../src/categoria/cate.routes.js"
-import { admincreate } from "../src/auth/auth.controller.js"
+import { createAdmin } from "../src/auth/auth.controller.js"
 import { createCategories } from "../src/categoria/cate.controller.js"
 import apiLimiter from "../src/middlewares/rate-limit-validator.js"
 
@@ -31,7 +31,7 @@ const routes = (app) =>{
 const conectarDB = async () =>{
     try{
         await dbConnection()
-        await admincreate()
+        await createAdmin()
         await createCategories()
     }catch(err){
         console.log(`Database connection failed: ${err}`)
